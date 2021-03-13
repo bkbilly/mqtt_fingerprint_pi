@@ -1,7 +1,7 @@
 # MQTT Fingerprint PI
 Exposes fingerprint sensor R503 to an MQTT broker to control it through Home Assistant. 
 
-This works with the GPIO of Raspberry PI or even a USB serial connected to PC. For Raspberry GPIO, you need to **Disable linux serial console** following the official guide [https://www.raspberrypi.org/documentation/configuration/uart.md](here).
+This works with the GPIO of Raspberry PI or even a USB serial connected to PC. For Raspberry GPIO, you need to **Disable linux serial console** following the official guide [here](https://www.raspberrypi.org/documentation/configuration/uart.md).
 
 # Installation
 ```bash
