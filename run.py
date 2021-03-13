@@ -242,7 +242,7 @@ def updatedtemplates(temp=None):
     client.publish("fingerprint/templates", templates)
 
 
-with open('config.yaml') as f:
+with open('/opt/mqtt_fingerprint_pi/config.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 fingerprint = Fingerprint(config['serial'])

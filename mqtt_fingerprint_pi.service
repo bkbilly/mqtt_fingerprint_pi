@@ -1,0 +1,12 @@
+[Unit]
+Description=MQTT Fingerprint PI
+After=network-online.target
+ 
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /opt/mqtt_fingerprint_pi/run.py
+ 
+[Install]
+WantedBy=multi-user.target
+
