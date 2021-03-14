@@ -243,7 +243,15 @@ def foundfinger(f_id, confidence):
     devices_dict = {i['id']: i for i in devices}
     device_publish = devices_dict[f_id]
     device_publish['confidence'] = confidence
-    client.publish("fingerprint/finger", json.dumps(device_publish))
+    device_authorized = True
+    if device_publish['id'] == device_publish['name']:
+        if (time.time() - device_publish['time']) > 30:
+            device_authorized = False
+    if device_authorized or config['timeout'] == 0:
+        client.publish("fingerprint/finger", json.dumps(device_publish))
+    else:
+        fingerprint.set_ledcolor(action="error")
+        client.publish("fingerprint/timeout", "temporary finger has expired, change device name")
 
 def unauthorized():
     client.publish("fingerprint/unauthorized", "true")
@@ -263,12 +271,14 @@ def updatedtemplates():
                 'id': template,
                 'name': devices_dict[template]['name'],
                 'action': devices_dict[template]['action'],
+                'time': devices_dict[template]['time'],
             })
         else:
             devices_list.append({
                 'id': template,
                 'name': template,
-                'action': "lock",
+                'action': "unlock",
+                'time': int(time.time()),
             })
     with open('devices.yaml', 'w') as f:
         yaml.dump(devices_list, f)
