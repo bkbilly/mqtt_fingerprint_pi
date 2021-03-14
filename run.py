@@ -1,3 +1,4 @@
+import os
 import time
 import serial
 
@@ -24,7 +25,8 @@ class Fingerprint():
         uart = serial.Serial(myserial, baudrate=57600, timeout=1)
         self.finger = adafruit_fingerprint.Adafruit_Fingerprint(uart)
         self.found_finger = lambda x, y: None
-        self.updated_templates = lambda x: None
+        self.updated_templates = lambda: None
+        self.unauthorized = lambda: None
         self.mode = "scan"
         self.get_info()
         threading.Thread(target=self.get_fingerprint, daemon=True).start()
@@ -81,7 +83,7 @@ class Fingerprint():
             print("Deleted!")
             self.finger.read_templates()
             self.finger.read_sysparam()
-            self.updated_templates(fingerprint.finger.templates)
+            self.updated_templates()
             return True
         else:
             print("Failed to delete")
@@ -94,7 +96,7 @@ class Fingerprint():
             print("Library emptied!")
             self.finger.read_templates()
             self.finger.read_sysparam()
-            self.updated_templates(fingerprint.finger.templates)
+            self.updated_templates()
             return True
         else:
             print("Failed to empty library")
@@ -117,8 +119,10 @@ class Fingerprint():
                             time.sleep(1)
                             self.set_ledcolor(action="reset")
                         else:
+                            self.unauthorized()
                             self.set_ledcolor(action="error")
                     else:
+                        self.unauthorized()
                         self.set_ledcolor(action="error")
 
     def enroll_finger(self, location, timeout=10):
@@ -202,7 +206,7 @@ class Fingerprint():
 
         self.finger.read_templates()
         self.finger.read_sysparam()
-        self.updated_templates(fingerprint.finger.templates)
+        self.updated_templates()
         return True
 
     def enroll_new(self):
@@ -234,21 +238,52 @@ def on_message(client, userdata, msg):
 
 def foundfinger(f_id, confidence):
     print(f_id, confidence)
-    client.publish("fingerprint/finger", f_id)
+    with open('devices.yaml') as f:
+        devices = yaml.load(f, Loader=yaml.FullLoader)
+    devices_dict = {i['id']: i for i in devices}
+    device_publish = devices_dict[f_id]
+    device_publish['confidence'] = confidence
+    client.publish("fingerprint/finger", json.dumps(device_publish))
 
+def unauthorized():
+    client.publish("fingerprint/unauthorized", "true")
 
-def updatedtemplates(temp=None):
+def updatedtemplates():
+    devices = []
+    if os.path.exists('devices.yaml'):
+        with open('devices.yaml') as f:
+            devices = yaml.load(f, Loader=yaml.FullLoader)
+    if devices is None:
+        devices = []
+    devices_dict = {i['id']: i for i in devices}
+    devices_list = []
+    for template in fingerprint.finger.templates:
+        if template in devices_dict:
+            devices_list.append({
+                'id': template,
+                'name': devices_dict[template]['name'],
+                'action': devices_dict[template]['action'],
+            })
+        else:
+            devices_list.append({
+                'id': template,
+                'name': template,
+                'action': "lock",
+            })
+    with open('devices.yaml', 'w') as f:
+        yaml.dump(devices_list, f)
     templates = json.dumps(fingerprint.finger.templates)
-    client.publish("fingerprint/templates", templates)
+    client.publish("fingerprint/templates", json.dumps(devices))
 
 
-with open('/opt/mqtt_fingerprint_pi/config.yaml') as f:
+with open('config.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 fingerprint = Fingerprint(config['serial'])
 client = mqtt.Client()
 fingerprint.found_finger = foundfinger
 fingerprint.updated_templates = updatedtemplates
+fingerprint.unauthorized = unauthorized
 client.on_connect = on_connect
 client.on_message = on_message
 

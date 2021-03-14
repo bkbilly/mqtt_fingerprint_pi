@@ -5,6 +5,7 @@ After=network-online.target
 [Service]
 Type=simple
 User=root
+WorkingDirectory=/opt/mqtt_fingerprint_pi
 ExecStart=/usr/bin/python3 /opt/mqtt_fingerprint_pi/run.py
  
 [Install]
