@@ -27,6 +27,7 @@ class Fingerprint():
         self.found_finger = lambda x, y: None
         self.updated_templates = lambda: None
         self.unauthorized = lambda: None
+        self.unauthorized_count = 0
         self.mode = "scan"
         self.get_info()
         threading.Thread(target=self.get_fingerprint, daemon=True).start()
@@ -216,6 +217,17 @@ class Fingerprint():
         return empty_positions[0]
 
 
+def read_devices():
+    devices = []
+    if os.path.exists('devices.yaml'):
+        with open('devices.yaml') as f:
+            devices = yaml.load(f, Loader=yaml.FullLoader)
+    if devices is None:
+        devices = []
+    devices_dict = {i['id']: i for i in devices}
+    return devices_dict
+
+
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
     client.subscribe("fingerprint/set/#")
@@ -238,33 +250,31 @@ def on_message(client, userdata, msg):
 
 def foundfinger(f_id, confidence):
     print(f_id, confidence)
-    with open('devices.yaml') as f:
-        devices = yaml.load(f, Loader=yaml.FullLoader)
-    devices_dict = {i['id']: i for i in devices}
+    devices_dict = read_devices()
     device_publish = devices_dict[f_id]
     device_publish['confidence'] = confidence
-    device_authorized = True
-    if device_publish['id'] == device_publish['name']:
-        if (time.time() - device_publish['time']) > 30:
-            device_authorized = False
-    if device_authorized or config['timeout'] == 0:
-        client.publish("fingerprint/finger", json.dumps(device_publish))
-    else:
-        fingerprint.set_ledcolor(action="error")
-        client.publish("fingerprint/timeout", "temporary finger has expired, change device name")
+    if config['timeout'] > 0:
+        if device_publish['id'] == device_publish['name']:
+            if (time.time() - device_publish['time']) > config['timeout']:
+                fingerprint.set_ledcolor(action="error")
+                device_publish['action'] = "timeout"
+    client.publish("fingerprint/finger", json.dumps(device_publish))
 
 def unauthorized():
-    client.publish("fingerprint/unauthorized", "true")
+    fingerprint.unauthorized_count += 1
+    to_publish = {
+        'id': -1,
+        'name': "unauthorized",
+        'action': "unauthorized",
+        'time': int(time.time()),
+        'count': fingerprint.unauthorized_count,
+        'confidence': 0,
+    }
+    client.publish("fingerprint/finger", json.dumps(to_publish))
 
 def updatedtemplates():
-    devices = []
-    if os.path.exists('devices.yaml'):
-        with open('devices.yaml') as f:
-            devices = yaml.load(f, Loader=yaml.FullLoader)
-    if devices is None:
-        devices = []
-    devices_dict = {i['id']: i for i in devices}
     devices_list = []
+    devices_dict = read_devices()
     for template in fingerprint.finger.templates:
         if template in devices_dict:
             devices_list.append({
@@ -272,6 +282,7 @@ def updatedtemplates():
                 'name': devices_dict[template]['name'],
                 'action': devices_dict[template]['action'],
                 'time': devices_dict[template]['time'],
+                'count': devices_dict[template]['count'],
             })
         else:
             devices_list.append({
@@ -279,11 +290,12 @@ def updatedtemplates():
                 'name': template,
                 'action': "unlock",
                 'time': int(time.time()),
+                'count': 0,
             })
     with open('devices.yaml', 'w') as f:
         yaml.dump(devices_list, f)
     templates = json.dumps(fingerprint.finger.templates)
-    client.publish("fingerprint/templates", json.dumps(devices))
+    client.publish("fingerprint/templates", json.dumps(devices_list))
 
 
 with open('config.yaml') as f:
