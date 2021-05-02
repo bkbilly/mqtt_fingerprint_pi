@@ -14,3 +14,57 @@ sudo cp mqtt_fingerprint_pi.service /etc/systemd/system/mqtt_fingerprint_pi.serv
 sudo systemctl enable mqtt_fingerprint_pi.service
 sudo systemctl start mqtt_fingerprint_pi.service
 ```
+
+# Configuration
+Edit the config.yaml file with the following info:
+```yaml
+serial: "/dev/serial0"  # Input
+timeout: 0
+mqtt:
+  host: "192.168.x.xxx"
+  user: "myuser"
+  pass: "mypass"
+```
+## Temporary fingerprints
+To enable the temporary fingerprints, you will have to change the timeout to any integer value other than zero.
+Each fingerprint is stored on the `devices.yaml` file with the time they were enrolled.
+If you change their **name**, they are considered **permanent** users, but if you don't change them, they will be considered **temporary**.
+The user works normally until the timeout is reached which will show send a timeout on mqtt instance.
+
+# MQTT Commands
+
+## fingerprint/finger
+This is published when a finger is scanned by the sensor. It contains the following:
+```python
+{
+  "id": 0,             # The id in the fingerprint sensor. (-1 means unauthorized user)
+  "action": "unlock",  # Default action is unlock, but supports "timeout, unauthorized, unlock, lock"
+  "name": "bkbilly",   # The user defined in devices.yaml
+  "confidence": 76     # How close the finger is to the original scan
+}
+```
+
+## fingerprint/templates
+This is published everytime a change is occured on the database like deleting or enrolling fingerprints.
+It contains a list of each fingerprint.
+```python
+[
+  {
+    "id": 0,            # The id in the fingerprint sensor
+    "name": "bkbilly",  # The custom name of the finger, defaults to ID value
+    "action": "unlock", # The action to perform, defaults to "unlock"
+    "time": 1615721723  # The timestamp the finger was enrolled
+  }
+]
+```
+
+## fingerprint/mode
+The default mode is scan which is constantly looking for new fingerprint inputs. It can support the following: 
+  - enroll (scans finger twice and saves it into the fingerprint sensor)
+  - scan (look for new fingerprint inputs)
+  - delete (deletes a fingerprint based on it's ID)
+  - empty (deletes all fingerprints)
+
+## "fingerprint/set/mode"
+Changes the mode "enroll, delete, empty". Most of them don't need any value, except delete which requires the id of the fingerprint.
+

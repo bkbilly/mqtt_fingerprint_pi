@@ -111,6 +111,7 @@ class Fingerprint():
                 if self.finger.get_image() == adafruit_fingerprint.OK:
                     self.set_ledcolor(self.LEDCOLOR_PURPLE, self.LEDMODE_BLINK)
                     print("Templating...")
+                    time.sleep(0.2)
                     if self.finger.image_2_tz(1) == adafruit_fingerprint.OK:
                         print("Searching...")
                         if self.finger.finger_search() == adafruit_fingerprint.OK:
@@ -230,6 +231,7 @@ def read_devices():
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
+    client.publish("fingerprint/mode", "scan")
     client.subscribe("fingerprint/set/#")
     client.subscribe("fingerprint/get/#")
     updatedtemplates()
@@ -238,14 +240,9 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     print(msg.topic + " " + str(msg.payload.decode("utf-8")))
     if msg.topic == "fingerprint/set/mode":
+        client.publish("fingerprint/mode", str(msg))
         fingerprint.set_mode(str(msg.payload.decode("utf-8")))
-    elif msg.topic == "fingerprint/set/delete":
-        fingerprint.set_mode("delete", int(msg.payload.decode("utf-8")))
-    elif msg.topic == "fingerprint/set/empty":
-        fingerprint.set_mode("empty")
-    elif msg.topic == "fingerprint/get/templates":
-        templates = json.dumps(fingerprint.finger.templates)
-        client.publish("fingerprint/templates", templates)
+        client.publish("fingerprint/mode", "scan")
 
 
 def foundfinger(f_id, confidence):
