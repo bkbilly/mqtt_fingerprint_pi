@@ -20,7 +20,7 @@ sudo systemctl start mqtt_fingerprint_pi.service
 Edit the config.yaml file with the following info:
 ```yaml
 serial: "/dev/serial0"  # Default serial for Raspberry
-timeout: 0              # Expiration time for each fingerprint
+timeout: 0              # Expiration time for each fingerprint (0=deactivate)
 mqtt:
   host: "192.168.x.x"   # MQTT Broker IP
   user: "myuser"        # MQTT Username
