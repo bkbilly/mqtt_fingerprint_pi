@@ -1,9 +1,10 @@
 # MQTT Fingerprint PI
-Exposes fingerprint sensor R503 to an MQTT broker to control it through Home Assistant. 
+Exposes fingerprint sensor R503 to an MQTT broker to control it through Home Assistant. The main purpose is to be used with a smart lock. If you want to create your own, check out the one I created [here](https://community.home-assistant.io/t/smart-lock-with-gears).
 
-This works with the GPIO of Raspberry PI or even a USB serial connected to PC. For Raspberry GPIO, you need to **Disable linux serial console** following the official guide [here](https://www.raspberrypi.org/documentation/configuration/uart.md).
 
 # Installation
+This works with the GPIO of Raspberry PI or even a USB serial connected to PC. For Raspberry GPIO, you need to **Disable linux serial console** following the official guide [here](https://www.raspberrypi.org/documentation/configuration/uart.md).
+
 ```bash
 git clone git@github.com:bkbilly/mqtt_fingerprint_pi.git /opt/mqtt_fingerprint_pi
 cd /opt/mqtt_fingerprint_pi/
@@ -30,6 +31,43 @@ To enable the temporary fingerprints, you will have to change the timeout to any
 Each fingerprint is stored on the `devices.yaml` file with the time they were enrolled.
 If you change their **name**, they are considered **permanent** users, but if you don't change them, they will be considered **temporary**.
 The user works normally until the timeout is reached which will show send a timeout on mqtt instance.
+
+# Home Assistant Integration
+This automation will check the action of the finger and it will call the appropriate service of the lock.
+```yaml
+alias: Fingerprint scanned successfully
+trigger:
+  - platform: mqtt
+    topic: fingerprint/finger
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: '{{ trigger.payload_json.action == "unlock" }}'
+        sequence:
+          - service: lock.unlock
+            target:
+              entity_id: lock.frontdoor
+      - conditions:
+          - condition: template
+            value_template: '{{ trigger.payload_json.action == "lock" }}'
+        sequence:
+          - service: lock.lock
+            target:
+              entity_id: lock.frontdoor
+```
+
+You can have a sensor to keep track of the fingeprint usage.
+```yaml
+sensor:
+  - platform: mqtt
+    name: "Fingerprint"
+    state_topic: "fingerprint/finger"
+    value_template: "{{ value_json.name }}"
+    json_attributes_topic: "fingerprint/finger"
+    json_attributes_template: "{{ value_json | tojson }}"
+```
+
 
 # MQTT Commands
 
