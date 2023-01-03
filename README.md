@@ -16,6 +16,17 @@ sudo systemctl enable mqtt_fingerprint_pi.service
 sudo systemctl start mqtt_fingerprint_pi.service
 ```
 
+## Connection diagram
+|     R503 Sensor      |     Raspberry PI     |
+| -------------------- | ------------------------- |
+| RED (Power 3V)       | [3.3V](https://pinout.xyz/pinout/3v3_power)  |
+| BLACK (GND)          | [Ground](https://pinout.xyz/pinout/ground)  |
+| YELLOW (TXD)         | [UART RX](https://pinout.xyz/pinout/pin10_gpio15)  |
+| GREEN (RXD)          | [UART TX](https://pinout.xyz/pinout/pin8_gpio14)  |
+| BLUE (Wakeup)        | Not connected  |
+| WHITE (3.3VT)        | Not connected  |
+
+
 # Configuration
 Edit the config.yaml file with the following info:
 ```yaml
