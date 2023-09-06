@@ -3,6 +3,8 @@ Description=MQTT Fingerprint PI
 After=network-online.target
  
 [Service]
+Restart=on-failure
+RestartSec=5s
 Type=simple
 User=root
 WorkingDirectory=/opt/mqtt_fingerprint_pi

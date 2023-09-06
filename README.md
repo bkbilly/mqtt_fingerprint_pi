@@ -3,10 +3,10 @@ Exposes fingerprint sensor R503 to an MQTT broker to control it through Home Ass
 
 
 # Installation
-This works with the GPIO of Raspberry PI or even a USB serial connected to PC. For Raspberry GPIO, you need to **Disable linux serial console** following the official guide [here](https://www.raspberrypi.org/documentation/configuration/uart.md).
+This works with the GPIO of Raspberry PI or even a USB serial connected to PC. For Raspberry GPIO, you need to **Disable linux serial console** following the official guide [here](https://www.raspberrypi.org/documentation/configuration/uart.md), or with this command `sudo raspi-config nonint do_serial 2`.
 
 ```bash
-git clone git@github.com:bkbilly/mqtt_fingerprint_pi.git /opt/mqtt_fingerprint_pi
+git clone https://github.com/bkbilly/mqtt_fingerprint_pi /opt/mqtt_fingerprint_pi
 cd /opt/mqtt_fingerprint_pi/
 vi config.yaml
 
