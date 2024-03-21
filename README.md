@@ -115,5 +115,37 @@ The default mode is scan which is constantly looking for new fingerprint inputs.
   - empty (deletes all fingerprints)
 
 ## "fingerprint/set/mode"
-Changes the mode "enroll, delete, empty". Most of them don't need any value, except delete which requires the id of the fingerprint.
+Changes the mode "enroll, delete, empty, name_xx". Most of them don't need any value, except delete which requires the id of the fingerprint.
+
+### Enroll
+```yaml
+service: mqtt.publish
+data:
+  topic: fingerprint/set/mode/enroll
+  payload: "-1"
+```
+
+### Rename
+```yaml
+service: mqtt.publish
+metadata: {}
+data:
+  topic: fingerprint/set/mode/name_{{ finger_id }}
+  payload: "{{ name }}"
+```
+
+### Delete
+```yaml
+service: mqtt.publish
+data:
+  topic: fingerprint/set/mode/delete
+  payload: "{{ finger_id }}"
+```
+
+### Delete All
+```yaml
+service: mqtt.publish
+data:
+  topic: fingerprint/set/mode/empty
+```
 

@@ -27,22 +27,24 @@ class Fingerprint():
         self.found_finger = lambda x, y: None
         self.updated_templates = lambda: None
         self.unauthorized = lambda: None
-        self.unauthorized_count = 0
         self.mode = "scan"
         self.get_info()
         threading.Thread(target=self.get_fingerprint, daemon=True).start()
 
-    def set_mode(self, mode, args=None):
+    def set_mode(self, mode, args=-1):
+        if args == "" or args is None:
+            args = -1
+        args = int(args)
         if self.mode != mode:
             print("changed mode to", mode)
             self.mode = mode
             if mode == "enroll":
-                self.enroll_new()
+                self.enroll_new(args)
                 self.mode = "scan"
-            if mode == "delete":
+            elif mode == "delete":
                 self.delete_model(args)
                 self.mode = "scan"
-            if mode == "empty":
+            elif mode == "empty":
                 self.empty_library()
 
     def get_info(self):
@@ -211,11 +213,13 @@ class Fingerprint():
         self.updated_templates()
         return True
 
-    def enroll_new(self):
-        empty_positions = list(set(range(0, self.finger.library_size - 1)) - set(self.finger.templates))
-        print('ID of the new enlyst:', empty_positions[0])
-        fingerprint.enroll_finger(empty_positions[0])
-        return empty_positions[0]
+    def enroll_new(self, position):
+        if position < 0:
+            empty_positions = list(set(range(0, self.finger.library_size - 1)) - set(self.finger.templates))
+            position = empty_positions[0]
+        print('ID of the new enlyst:', position)
+        fingerprint.enroll_finger(position)
+        return position
 
 
 def read_devices():
@@ -233,21 +237,35 @@ def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
     client.publish("fingerprint/mode", "scan")
     client.subscribe("fingerprint/set/#")
-    client.subscribe("fingerprint/get/#")
     updatedtemplates()
 
 
 def on_message(client, userdata, msg):
-    print(msg.topic + " " + str(msg.payload.decode("utf-8")))
-    if msg.topic == "fingerprint/set/mode":
-        client.publish("fingerprint/mode", str(msg))
-        fingerprint.set_mode(str(msg.payload.decode("utf-8")))
+    mode = msg.topic.split("/")[-1]
+    payload_arg = str(msg.payload.decode("utf-8"))
+    print(msg.topic + " " + payload_arg)
+    if "name_" in mode:
+        f_id = int(mode.split("_")[-1])
+        renamefinger(f_id, payload_arg)
+    else:
+        client.publish("fingerprint/mode", mode)
+        fingerprint.set_mode(mode, payload_arg)
         client.publish("fingerprint/mode", "scan")
 
+def renamefinger(f_id, name):
+    print(f_id, name)
+    devices_dict = read_devices()
+    devices_dict[f_id]['name'] = name
+    devices_list = []
+    for d_id, device in devices_dict.items():
+        devices_list.append(device)
+    with open('devices.yaml', 'w') as f:
+        yaml.dump(devices_list, f)
 
 def foundfinger(f_id, confidence):
     print(f_id, confidence)
     devices_dict = read_devices()
+    devices_dict[f_id]['count'] += 1
     device_publish = devices_dict[f_id]
     device_publish['confidence'] = confidence
     if config['timeout'] > 0:
@@ -256,15 +274,18 @@ def foundfinger(f_id, confidence):
                 fingerprint.set_ledcolor(action="error")
                 device_publish['action'] = "timeout"
     client.publish("fingerprint/finger", json.dumps(device_publish))
+    devices_list = []
+    for d_id, device in devices_dict.items():
+        devices_list.append(device)
+    with open('devices.yaml', 'w') as f:
+        yaml.dump(devices_list, f)
 
 def unauthorized():
-    fingerprint.unauthorized_count += 1
     to_publish = {
         'id': -1,
         'name': "unauthorized",
         'action': "unauthorized",
         'time': int(time.time()),
-        'count': fingerprint.unauthorized_count,
         'confidence': 0,
     }
     client.publish("fingerprint/finger", json.dumps(to_publish))
