@@ -110,7 +110,11 @@ class Fingerprint():
         """Get a finger print image, template it, and see if it matches!"""
         while True:
             if self.mode == "scan":
-                if self.finger.get_image() == adafruit_fingerprint.OK:
+                try:
+                    is_finger_ok = self.finger.get_image() == adafruit_fingerprint.OK
+                except:
+                    continue
+                if is_finger_ok:
                     self.set_ledcolor(self.LEDCOLOR_PURPLE, self.LEDMODE_BLINK)
                     print("Templating...")
                     time.sleep(0.2)
