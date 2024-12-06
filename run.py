@@ -239,8 +239,8 @@ def read_devices():
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
-    client.publish("fingerprint/mode", "scan")
-    client.subscribe("fingerprint/set/#")
+    client.publish(f"{config.get('topic', 'fingerprint')}/mode", "scan")
+    client.subscribe(f"{config.get('topic', 'fingerprint')}/set/#")
     updatedtemplates()
 
 
@@ -252,9 +252,9 @@ def on_message(client, userdata, msg):
         f_id = int(mode.split("_")[-1])
         renamefinger(f_id, payload_arg)
     else:
-        client.publish("fingerprint/mode", mode)
+        client.publish(f"{config.get('topic', 'fingerprint')}/mode", mode)
         fingerprint.set_mode(mode, payload_arg)
-        client.publish("fingerprint/mode", "scan")
+        client.publish(f"{config.get('topic', 'fingerprint')}/mode", "scan")
 
 def renamefinger(f_id, name):
     print(f_id, name)
@@ -277,7 +277,7 @@ def foundfinger(f_id, confidence):
             if (time.time() - device_publish['time']) > config['timeout']:
                 fingerprint.set_ledcolor(action="error")
                 device_publish['action'] = "timeout"
-    client.publish("fingerprint/finger", json.dumps(device_publish))
+    client.publish(f"{config.get('topic', 'fingerprint')}/finger", json.dumps(device_publish))
     devices_list = []
     for d_id, device in devices_dict.items():
         devices_list.append(device)
@@ -292,7 +292,7 @@ def unauthorized():
         'time': int(time.time()),
         'confidence': 0,
     }
-    client.publish("fingerprint/finger", json.dumps(to_publish))
+    client.publish(f"{config.get('topic', 'fingerprint')}/finger", json.dumps(to_publish))
 
 def updatedtemplates():
     devices_list = []
@@ -317,7 +317,7 @@ def updatedtemplates():
     with open('devices.yaml', 'w') as f:
         yaml.dump(devices_list, f)
     templates = json.dumps(fingerprint.finger.templates)
-    client.publish("fingerprint/templates", json.dumps(devices_list))
+    client.publish(f"{config.get('topic', 'fingerprint')}/templates", json.dumps(devices_list))
 
 
 with open('config.yaml') as f:

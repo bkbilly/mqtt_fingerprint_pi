@@ -1,5 +1,6 @@
 serial: "/dev/serial0"
 timeout: 0
+topic: "fingerprint"
 mqtt:
   host: "192.168.1.1"
   user: "user"
