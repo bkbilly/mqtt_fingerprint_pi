@@ -237,14 +237,14 @@ def read_devices():
     return devices_dict
 
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, rc, *args):
     print("Connected with result code " + str(rc))
     client.publish(f"{config.get('topic', 'fingerprint')}/mode", "scan")
     client.subscribe(f"{config.get('topic', 'fingerprint')}/set/#")
     updatedtemplates()
 
 
-def on_message(client, userdata, msg):
+def on_message(client, userdata, msg, *args):
     mode = msg.topic.split("/")[-1]
     payload_arg = str(msg.payload.decode("utf-8"))
     print(msg.topic + " " + payload_arg)
@@ -324,7 +324,10 @@ with open('config.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 fingerprint = Fingerprint(config['serial'])
-client = mqtt.Client()
+if hasattr(mqtt, "CallbackAPIVersion"):
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+else:
+    client = mqtt.Client()
 fingerprint.found_finger = foundfinger
 fingerprint.updated_templates = updatedtemplates
 fingerprint.unauthorized = unauthorized

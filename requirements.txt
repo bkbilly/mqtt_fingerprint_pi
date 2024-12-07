@@ -1,5 +1,4 @@
-paho-mqtt==1.5.1
+paho-mqtt==2.1.0
 pyserial==3.5
-PyYAML==5.4.1
-adafruit-circuitpython-fingerprint==2.2.0
-
+PyYAML==6.0.2
+adafruit-circuitpython-fingerprint==2.2.18
